@@ -166,7 +166,7 @@ bool MomoEQAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* MomoEQAudioProcessor::createEditor()
 {
-    return new MomoEQAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
@@ -182,6 +182,38 @@ void MomoEQAudioProcessor::setStateInformation (const void* data, int sizeInByte
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
 }
+
+juce::AudioProcessorValueTreeState::ParameterLayout MomoEQAudioProcessor::createParameterLayout(){
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    
+    layout.add(std::make_unique<juce::AudioParameterFloat>("lowCut Freq","lowCut Freq",juce::NormalisableRange<float>(20.f,20000.f, 1.f,1.f),20.f));
+    
+    layout.add(std::make_unique<juce::AudioParameterFloat>("highCut Freq","highCut Freq",juce::NormalisableRange<float>(20.f,20000.f, 1.f,1.f),20000.f));
+    
+    layout.add(std::make_unique<juce::AudioParameterFloat>("peak Freq","peak Freq",juce::NormalisableRange<float>(20.f,20000.f, 1.f,1.f),750.f));
+    
+    layout.add(std::make_unique<juce::AudioParameterFloat>("peakGain Freq","peakGain Freq",juce::NormalisableRange<float>(-24.f,24.f, 0.5f,1.f),0.0f));
+    
+    layout.add(std::make_unique<juce::AudioParameterFloat>("peak Quality","peak Quality",juce::NormalisableRange<float>(0.1f,10.f, 0.05f,1.f),1.f));
+    
+    juce::StringArray strArr;
+    for (int i = 0; i < 4; ++i) {
+        juce::String str;
+        str << (12 + i*12);
+        str << " db/Oct";
+        strArr.add(str);
+    };
+    
+    layout.add(
+        std::make_unique<juce::AudioParameterChoice>("lowCut Slope", "lowCut Slope",strArr, 0)
+               );
+    layout.add(
+        std::make_unique<juce::AudioParameterChoice>("highCut Slope", "highCut Slope",strArr, 0)
+               );
+    
+    return layout;
+    }
+
 
 //==============================================================================
 // This creates new instances of the plugin..
