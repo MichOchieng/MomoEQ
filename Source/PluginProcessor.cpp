@@ -103,6 +103,16 @@ void MomoEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     
     leftChain.prepare(spec);
     rightChain.prepare(spec);
+    
+    auto chainSettings = getChainSettings(apvts);
+    
+    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate,
+                                                                                chainSettings.peakFreq,
+                                                                                chainSettings.peakQuality,
+                                                                                juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+    
+    *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
 }
 
 void MomoEQAudioProcessor::releaseResources()
@@ -152,6 +162,16 @@ void MomoEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    auto chainSettings = getChainSettings(apvts);
+    
+    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(),
+                                                                                chainSettings.peakFreq,
+                                                                                chainSettings.peakQuality,
+                                                                                juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
+    
+    *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    
     juce::dsp::AudioBlock<float> block(buffer);
     
     auto leftBlock = block.getSingleChannelBlock(0);
@@ -191,6 +211,20 @@ void MomoEQAudioProcessor::setStateInformation (const void* data, int sizeInByte
     // whose contents will have been created by the getStateInformation() call.
 }
 
+
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts){
+    ChainSettings settings;
+    
+    settings.lowCutFreq = apvts.getRawParameterValue("lowCut Freq")->load();
+    settings.highCutFreq = apvts.getRawParameterValue("highCut Freq")->load();
+    settings.peakFreq = apvts.getRawParameterValue("peak Freq")->load();
+    settings.peakGainInDecibels = apvts.getRawParameterValue("peakGain Freq")->load();
+    settings.peakQuality = apvts.getRawParameterValue("peak Quality")->load();
+    settings.lowCutSlope = apvts.getRawParameterValue("lowCut Slope")->load();
+    settings.highCutSlope = apvts.getRawParameterValue("highCut Slope")->load();
+    
+    return settings;
+}
 juce::AudioProcessorValueTreeState::ParameterLayout MomoEQAudioProcessor::createParameterLayout(){
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
     
@@ -198,7 +232,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MomoEQAudioProcessor::create
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("highCut Freq","highCut Freq",juce::NormalisableRange<float>(20.f,20000.f, 1.f,1.f),20000.f));
     
-    layout.add(std::make_unique<juce::AudioParameterFloat>("peak Freq","peak Freq",juce::NormalisableRange<float>(20.f,20000.f, 1.f,1.f),750.f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("peak Freq","peak Freq",juce::NormalisableRange<float>(20.f,20000.f, 1.f,0.25f),750.f));
     
     layout.add(std::make_unique<juce::AudioParameterFloat>("peakGain Freq","peakGain Freq",juce::NormalisableRange<float>(-24.f,24.f, 0.5f,1.f),0.0f));
     
